@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kuis Kimia SMP dengan Leaderboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);
+            min-height: 100vh;
+        }
+        
+        .quiz-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .option-btn {
+            transition: all 0.3s ease;
+            border: 2px solid #e2e8f0;
+        }
+        
+        .option-btn:hover {
+            border-color: #3b82f6;
+            background-color: #f0f7ff;
+        }
+        
+        .option-btn.selected {
+            border-color: #3b82f6;
+            background-color: #ebf5ff;
+        }
+        
+        .option-btn.correct {
+            border-color: #10b981;
+            background-color: #d1fae5;
+        }
+        
+        .option-btn.incorrect {
+            border-color: #ef4444;
+            background-color: #fee2e2;
+        }
+        
+        .tab-button {
+            transition: all 0.3s ease;
+        }
+        
+        .tab-button.active {
+            background-color: #3b82f6;
+            color: white;
+        }
+        
+        .explanation {
+            background-color: #f8fafc;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            background-color: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #60a5fa);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            border-radius: 50%;
+            animation: fall 3s ease-in-out infinite;
+        }
+        
+        @keyframes fall {
+            0% {
+                transform: translateY(-100px) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(600px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .shuffle-icon {
+            animation: spin 1s ease-in-out;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .leaderboard-item {
+            transition: all 0.3s ease;
+        }
+        
+        .leaderboard-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .medal-gold {
+            background: linear-gradient(45deg, #FFD700, #FFC107);
+        }
+        
+        .medal-silver {
+            background: linear-gradient(45deg, #C0C0C0, #E0E0E0);
+        }
+        
+        .medal-bronze {
+            background: linear-gradient(45deg, #CD7F32, #D2691E);
+        }
+        
+        .modal {
+            background-color: rgba(0, 0, 0, 0.5);
+            transition: opacity 0.3s ease;
+        }
+        
+        .modal-content {
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+        
+        .modal.show .modal-content {
+            transform: scale(1);
+        }
+        
+        .trophy-icon {
+            animation: bounce 2s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+    </style>
+</head>
+<body class="p-4">
+    <div class="quiz-container my-8">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6 text-white">
+            <h1 class="text-3xl font-bold text-center">Kuis Kimia SMP</h1>
+            <p class="text-center text-blue-100 mt-2">Uji pengetahuan kimia kamu untuk kelas 7, 8, dan 9</p>
+        </div>
+        
+        <!-- Tab Navigation -->
+        <div class="flex border-b border-gray-200">
+            <button class="tab-button active flex-1 py-3 px-4 font-medium text-center" data-tab="kelas7">
+                <span class="inline-block mr-2">🧪</span> Kelas 7
+            </button>
+            <button class="tab-button flex-1 py-3 px-4 font-medium text-center" data-tab="kelas8">
+                <span class="inline-block mr-2">🔬</span> Kelas 8
+            </button>
+            <button class="tab-button flex-1 py-3 px-4 font-medium text-center" data-tab="kelas9">
+                <span class="inline-block mr-2">⚗️</span> Kelas 9
+            </button>
+            <button class="tab-button flex-1 py-3 px-4 font-medium text-center" data-tab="leaderboard">
+                <span class="inline-block mr-2">🏆</span> Peringkat
+            </button>
+        </div>
+        
+        <!-- Quiz Content -->
+        <div class="p-6">
+            <!-- Progress Bar -->
+            <div class="mb-6 progress-container">
+                <div class="flex justify-between mb-2">
+                    <span class="text-sm font-medium text-gray-700">Progress</span>
+                    <span class="text-sm font-medium text-gray-700" id="progress-text">0/10</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 0%"></div>
+                </div>
+            </div>
+            
+            <!-- Quiz Sections -->
+            <div id="kelas7" class="tab-content">
+                <div class="mb-4">
+                    <h2 class="text-xl font-bold text-blue-800 mb-2">Tema: Pengenalan Ilmu Kimia dan Zat</h2>
+                </div>
+                
+                <!-- Questions will be inserted here -->
+            </div>
+            
+            <div id="kelas8" class="tab-content hidden">
+                <div class="mb-4">
+                    <h2 class="text-xl font-bold text-blue-800 mb-2">Tema: Atom, Unsur, dan Senyawa</h2>
+                </div>
+                
+                <!-- Questions will be inserted here -->
+            </div>
+            
+            <div id="kelas9" class="tab-content hidden">
+                <div class="mb-4">
+                    <h2 class="text-xl font-bold text-blue-800 mb-2">Tema: Reaksi Kimia dan Kimia dalam Kehidupan</h2>
+                </div>
+                
+                <!-- Questions will be inserted here -->
+            </div>
+            
+            <!-- Leaderboard Section -->
+            <div id="leaderboard" class="tab-content hidden">
+                <div class="mb-4">
+                    <h2 class="text-xl font-bold text-blue-800 mb-2">Peringkat Terbaik</h2>
+                    <p class="text-gray-600 mb-4">Daftar peserta yang telah menyelesaikan kuis ini.</p>
+                </div>
+                
+                <!-- Leaderboard Tabs -->
+                <div class="flex border-b border-gray-200 mb-4">
+                    <button class="leaderboard-tab-button active flex-1 py-2 px-4 font-medium text-center" data-leaderboard-tab="kelas7-leaderboard">
+                        Kelas 7
+                    </button>
+                    <button class="leaderboard-tab-button flex-1 py-2 px-4 font-medium text-center" data-leaderboard-tab="kelas8-leaderboard">
+                        Kelas 8
+                    </button>
+                    <button class="leaderboard-tab-button flex-1 py-2 px-4 font-medium text-center" data-leaderboard-tab="kelas9-leaderboard">
+                        Kelas 9
+                    </button>
+                </div>
+                
+                <!-- Leaderboard Content -->
+                <div id="kelas7-leaderboard" class="leaderboard-tab-content">
+                    <div class="leaderboard-list">
+                        <!-- Leaderboard items will be inserted here -->
+                    </div>
+                </div>
+                
+                <div id="kelas8-leaderboard" class="leaderboard-tab-content hidden">
+                    <div class="leaderboard-list">
+                        <!-- Leaderboard items will be inserted here -->
+                    </div>
+                </div>
+                
+                <div id="kelas9-leaderboard" class="leaderboard-tab-content hidden">
+                    <div class="leaderboard-list">
+                        <!-- Leaderboard items will be inserted here -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Results Section -->
+            <div id="results" class="hidden text-center py-8 fade-in">
+                <div class="mb-6">
+                    <svg class="mx-auto h-24 w-24 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">Kuis Selesai!</h2>
+                <p class="text-lg text-gray-600 mb-4">Skor kamu:</p>
+                <div class="text-5xl font-bold text-blue-600 mb-6" id="final-score">0/10</div>
+                <div class="mb-8">
+                    <div class="inline-block bg-blue-100 rounded-full px-4 py-2 text-blue-800 font-medium" id="score-message">Coba lagi untuk hasil yang lebih baik!</div>
+                </div>
+                <button id="save-score-btn" class="bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 flex items-center mx-auto">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                    </svg>
+                    Simpan Skor ke Leaderboard
+                </button>
+                <button id="restart-btn" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 flex items-center mx-auto">
+                    <svg class="w-5 h-5 mr-2 shuffle-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    Mulai Ulang (Soal Diacak)
+                </button>
+                <button id="review-btn" class="mt-4 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 px-6 rounded-lg transition duration-300 block mx-auto">
+                    Lihat Jawaban
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Name Input Modal -->
+    <div id="name-modal" class="modal fixed inset-0 flex items-center justify-center z-50 hidden opacity-0">
+        <div class="modal-overlay absolute inset-0 bg-black opacity-50"></div>
+        <div class="modal-content bg-white rounded-lg p-8 max-w-md mx-auto relative z-10 shadow-xl">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Simpan Skor Kamu!</h3>
+            <p class="text-gray-600 mb-6">Masukkan nama kamu untuk ditampilkan di leaderboard.</p>
+            
+            <div class="mb-4">
+                <label for="player-name" class="block text-sm font-medium text-gray-700 mb-2">Nama</label>
+                <input type="text" id="player-name" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Masukkan nama kamu">
+                <p id="name-error" class="text-red-500 text-sm mt-1 hidden">Nama tidak boleh kosong</p>
+            </div>
+            
+            <div class="mb-4">
+                <label for="player-school" class="block text-sm font-medium text-gray-700 mb-2">Sekolah (Opsional)</label>
+                <input type="text" id="player-school" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nama sekolah kamu">
+            </div>
+            
+            <div class="flex justify-end">
+                <button id="cancel-save" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-md mr-2">
+                    Batal
+                </button>
+                <button id="confirm-save" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md">
+                    Simpan
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Quiz data
+        const originalQuizData = {
+            kelas7: [
+                {
+                    question: "Ilmu kimia mempelajari tentang …",
+                    options: [
+                        "Bintang dan planet",
+                        "Tanah dan bebatuan",
+                        "Struktur, sifat, dan perubahan zat",
+                        "Gerak dan gaya"
+                    ],
+                    answer: 2,
+                    explanation: "Ilmu kimia adalah ilmu yang mempelajari struktur, sifat, komposisi, dan perubahan zat."
+                },
+                {
+                    question: "Zat tunggal yang tidak dapat diuraikan menjadi zat lain yang lebih sederhana disebut …",
+                    options: [
+                        "Campuran",
+                        "Senyawa",
+                        "Unsur",
+                        "Larutan"
+                    ],
+                    answer: 2,
+                    explanation: "Unsur adalah zat tunggal yang tidak dapat diuraikan lagi menjadi zat lain dengan reaksi kimia biasa."
+                },
+                {
+                    question: "Contoh perubahan fisika adalah …",
+                    options: [
+                        "Kertas dibakar",
+                        "Es mencair",
+                        "Besi berkarat",
+                        "Nasi menjadi basi"
+                    ],
+                    answer: 1,
+                    explanation: "Perubahan fisika tidak menghasilkan zat baru. Es mencair hanya berubah bentuk, tetap menjadi air."
+                },
+                {
+                    question: "Campuran homogen adalah …",
+                    options: [
+                        "Campuran yang komponen-komponennya bisa dibedakan",
+                        "Campuran yang seragam dan tidak bisa dibedakan komponen-komponennya",
+                        "Campuran antara padat dan gas",
+                        "Campuran antara zat dan benda"
+                    ],
+                    answer: 1,
+                    explanation: "Campuran homogen memiliki komposisi seragam, seperti larutan gula dalam air."
+                },
+                {
+                    question: "Contoh zat murni adalah …",
+                    options: [
+                        "Air laut",
+                        "Minyak goreng",
+                        "Garam dapur (NaCl)",
+                        "Kopi susu"
+                    ],
+                    answer: 2,
+                    explanation: "Garam dapur adalah zat tunggal (senyawa) karena memiliki satu jenis partikel."
+                },
+                {
+                    question: "Manakah di bawah ini yang merupakan senyawa?",
+                    options: [
+                        "Oksigen (O₂)",
+                        "Air (H₂O)",
+                        "Emas (Au)",
+                        "Besi (Fe)"
+                    ],
+                    answer: 1,
+                    explanation: "Air adalah senyawa karena tersusun dari dua unsur: hidrogen dan oksigen."
+                },
+                {
+                    question: "Berikut ini yang termasuk campuran heterogen adalah …",
+                    options: [
+                        "Air gula",
+                        "Udara",
+                        "Campuran pasir dan air",
+                        "Larutan garam"
+                    ],
+                    answer: 2,
+                    explanation: "Campuran pasir dan air dapat dibedakan secara fisik, termasuk campuran heterogen."
+                },
+                {
+                    question: "Air termasuk zat …",
+                    options: [
+                        "Unsur",
+                        "Campuran",
+                        "Senyawa",
+                        "Logam"
+                    ],
+                    answer: 2,
+                    explanation: "Air adalah senyawa yang terbentuk dari hidrogen dan oksigen."
+                },
+                {
+                    question: "Zat yang terdiri dari dua atau lebih unsur disebut …",
+                    options: [
+                        "Unsur",
+                        "Campuran",
+                        "Senyawa",
+                        "Logam"
+                    ],
+                    answer: 2,
+                    explanation: "Senyawa terdiri dari dua atau lebih unsur yang terikat secara kimia."
+                },
+                {
+                    question: "Proses pemisahan campuran berdasarkan ukuran partikel adalah …",
+                    options: [
+                        "Penyaringan (filtrasi)",
+                        "Destilasi",
+                        "Kristalisasi",
+                        "Sublimasi"
+                    ],
+                    answer: 0,
+                    explanation: "Penyaringan memisahkan zat berdasarkan perbedaan ukuran partikel."
+                }
+            ],
+            kelas8: [
+                {
+                    question: "Partikel terkecil dari suatu unsur yang masih memiliki sifat unsur tersebut adalah ...",
+                    options: [
+                        "Molekul",
+                        "Atom",
+                        "Elektron",
+                        "Proton"
+                    ],
+                    answer: 1,
+                    explanation: "Atom adalah partikel terkecil dari suatu unsur yang masih memiliki sifat unsur tersebut."
+                },
+                {
+                    question: "Partikel subatom yang bermuatan positif adalah ...",
+                    options: [
+                        "Elektron",
+                        "Proton",
+                        "Neutron",
+                        "Nukleon"
+                    ],
+                    answer: 1,
+                    explanation: "Proton adalah partikel subatom yang bermuatan positif dan berada di dalam inti atom."
+                },
+                {
+                    question: "Unsur dengan nomor atom 11 memiliki konfigurasi elektron ...",
+                    options: [
+                        "2, 8, 1",
+                        "2, 8, 2",
+                        "2, 9",
+                        "2, 7, 2"
+                    ],
+                    answer: 0,
+                    explanation: "Unsur dengan nomor atom 11 memiliki 11 elektron yang tersusun dalam konfigurasi 2, 8, 1."
+                },
+                {
+                    question: "Senyawa yang terbentuk dari unsur natrium (Na) dan klor (Cl) adalah ...",
+                    options: [
+                        "NaCl₂",
+                        "Na₂Cl",
+                        "NaCl",
+                        "Na₂Cl₂"
+                    ],
+                    answer: 2,
+                    explanation: "Natrium klorida (NaCl) adalah senyawa yang terbentuk dari unsur natrium dan klor."
+                },
+                {
+                    question: "Rumus kimia dari senyawa karbon dioksida adalah ...",
+                    options: [
+                        "CO",
+                        "CO₂",
+                        "C₂O",
+                        "C₂O₂"
+                    ],
+                    answer: 1,
+                    explanation: "Karbon dioksida memiliki rumus kimia CO₂, terdiri dari 1 atom karbon dan 2 atom oksigen."
+                },
+                {
+                    question: "Unsur-unsur dalam tabel periodik dikelompokkan berdasarkan ...",
+                    options: [
+                        "Massa atom",
+                        "Jumlah neutron",
+                        "Sifat kimia yang mirip",
+                        "Warna unsur"
+                    ],
+                    answer: 2,
+                    explanation: "Unsur-unsur dalam tabel periodik dikelompokkan berdasarkan sifat kimia yang mirip."
+                },
+                {
+                    question: "Unsur yang termasuk dalam golongan gas mulia adalah ...",
+                    options: [
+                        "Oksigen",
+                        "Nitrogen",
+                        "Helium",
+                        "Hidrogen"
+                    ],
+                    answer: 2,
+                    explanation: "Helium adalah salah satu unsur yang termasuk dalam golongan gas mulia (golongan 18)."
+                },
+                {
+                    question: "Ikatan yang terjadi karena adanya gaya tarik-menarik antara ion positif dan ion negatif disebut ...",
+                    options: [
+                        "Ikatan kovalen",
+                        "Ikatan ion",
+                        "Ikatan logam",
+                        "Ikatan hidrogen"
+                    ],
+                    answer: 1,
+                    explanation: "Ikatan ion terjadi karena adanya gaya tarik-menarik elektrostatik antara ion positif dan ion negatif."
+                },
+                {
+                    question: "Ikatan yang terbentuk karena pemakaian bersama pasangan elektron disebut ...",
+                    options: [
+                        "Ikatan kovalen",
+                        "Ikatan ion",
+                        "Ikatan logam",
+                        "Ikatan hidrogen"
+                    ],
+                    answer: 0,
+                    explanation: "Ikatan kovalen terbentuk karena pemakaian bersama pasangan elektron oleh dua atom."
+                },
+                {
+                    question: "Sifat logam yang dapat ditempa dan dibentuk disebut ...",
+                    options: [
+                        "Konduktivitas",
+                        "Kekerasan",
+                        "Kelenturan",
+                        "Daktilitas"
+                    ],
+                    answer: 3,
+                    explanation: "Daktilitas adalah sifat logam yang dapat ditempa dan dibentuk menjadi lembaran tipis."
+                }
+            ],
+            kelas9: [
+                {
+                    question: "Reaksi kimia yang melepaskan energi disebut reaksi ...",
+                    options: [
+                        "Endoterm",
+                        "Eksoterm",
+                        "Reduksi",
+                        "Oksidasi"
+                    ],
+                    answer: 1,
+                    explanation: "Reaksi eksoterm adalah reaksi kimia yang melepaskan energi dalam bentuk panas ke lingkungan."
+                },
+                {
+                    question: "Reaksi kimia yang menyerap energi disebut reaksi ...",
+                    options: [
+                        "Endoterm",
+                        "Eksoterm",
+                        "Reduksi",
+                        "Oksidasi"
+                    ],
+                    answer: 0,
+                    explanation: "Reaksi endoterm adalah reaksi kimia yang menyerap energi dari lingkungan."
+                },
+                {
+                    question: "Proses penambahan oksigen pada suatu zat disebut ...",
+                    options: [
+                        "Reduksi",
+                        "Oksidasi",
+                        "Hidrolisis",
+                        "Netralisasi"
+                    ],
+                    answer: 1,
+                    explanation: "Oksidasi adalah proses penambahan oksigen, pelepasan elektron, atau peningkatan bilangan oksidasi."
+                },
+                {
+                    question: "Larutan dengan pH kurang dari 7 bersifat ...",
+                    options: [
+                        "Asam",
+                        "Basa",
+                        "Netral",
+                        "Amfoter"
+                    ],
+                    answer: 0,
+                    explanation: "Larutan dengan pH kurang dari 7 bersifat asam."
+                },
+                {
+                    question: "Contoh bahan kimia yang digunakan sebagai pengawet makanan adalah ...",
+                    options: [
+                        "Natrium benzoat",
+                        "Natrium hidroksida",
+                        "Asam sulfat",
+                        "Kalsium karbonat"
+                    ],
+                    answer: 0,
+                    explanation: "Natrium benzoat sering digunakan sebagai pengawet makanan untuk mencegah pertumbuhan mikroba."
+                },
+                {
+                    question: "Reaksi antara asam dan basa menghasilkan ...",
+                    options: [
+                        "Garam dan air",
+                        "Garam dan gas",
+                        "Air dan gas",
+                        "Oksida dan air"
+                    ],
+                    answer: 0,
+                    explanation: "Reaksi antara asam dan basa (reaksi netralisasi) menghasilkan garam dan air."
+                },
+                {
+                    question: "Bahan kimia yang digunakan untuk membuat sabun adalah ...",
+                    options: [
+                        "Asam klorida dan natrium hidroksida",
+                        "Minyak nabati dan natrium hidroksida",
+                        "Asam sulfat dan kalsium karbonat",
+                        "Alkohol dan asam asetat"
+                    ],
+                    answer: 1,
+                    explanation: "Sabun dibuat melalui reaksi saponifikasi antara minyak nabati dan natrium hidroksida (NaOH)."
+                },
+                {
+                    question: "Zat aditif yang berfungsi untuk menambah rasa manis pada makanan adalah ...",
+                    options: [
+                        "MSG",
+                        "Sakarin",
+                        "Tartrazin",
+                        "Natrium benzoat"
+                    ],
+                    answer: 1,
+                    explanation: "Sakarin adalah pemanis buatan yang sering digunakan sebagai pengganti gula."
+                },
+                {
+                    question: "Bahan bakar fosil yang berasal dari sisa-sisa tumbuhan dan hewan yang terpendam jutaan tahun adalah ...",
+                    options: [
+                        "Biogas",
+                        "Minyak bumi",
+                        "Biodiesel",
+                        "Etanol"
+                    ],
+                    answer: 1,
+                    explanation: "Minyak bumi adalah bahan bakar fosil yang terbentuk dari sisa-sisa organisme yang terpendam jutaan tahun."
+                },
+                {
+                    question: "Polimer berikut yang termasuk polimer alami adalah ...",
+                    options: [
+                        "Polietilena",
+                        "PVC",
+                        "Selulosa",
+                        "Polistirena"
+                    ],
+                    answer: 2,
+                    explanation: "Selulosa adalah polimer alami yang terdapat pada dinding sel tumbuhan."
+                }
+            ]
+        };
+        
+        // Initialize empty leaderboard data
+        let leaderboardData = {
+            kelas7: [],
+            kelas8: [],
+            kelas9: []
+        };
+        
+        // Try to load leaderboard data from localStorage
+        try {
+            const savedLeaderboard = localStorage.getItem('chemistryQuizLeaderboard');
+            if (savedLeaderboard) {
+                leaderboardData = JSON.parse(savedLeaderboard);
+            }
+        } catch (e) {
+            console.error("Error loading leaderboard data:", e);
+        }
+        
+        // Create a deep copy of the quiz data
+        let quizData = JSON.parse(JSON.stringify(originalQuizData));
+        
+        // Variables
+        let currentTab = 'kelas7';
+        let currentQuestion = 0;
+        let score = 0;
+        let answered = false;
+        let userAnswers = {
+            kelas7: Array(10).fill(null),
+            kelas8: Array(10).fill(null),
+            kelas9: Array(10).fill(null)
+        };
+        
+        // DOM Elements
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const progressFill = document.querySelector('.progress-fill');
+        const progressText = document.getElementById('progress-text');
+        const resultsSection = document.getElementById('results');
+        const finalScoreElement = document.getElementById('final-score');
+        const scoreMessageElement = document.getElementById('score-message');
+        const restartButton = document.getElementById('restart-btn');
+        const reviewButton = document.getElementById('review-btn');
+        const saveScoreButton = document.getElementById('save-score-btn');
+        const nameModal = document.getElementById('name-modal');
+        const playerNameInput = document.getElementById('player-name');
+        const playerSchoolInput = document.getElementById('player-school');
+        const nameError = document.getElementById('name-error');
+        const confirmSaveButton = document.getElementById('confirm-save');
+        const cancelSaveButton = document.getElementById('cancel-save');
+        const progressContainer = document.querySelector('.progress-container');
+        const leaderboardTabButtons = document.querySelectorAll('.leaderboard-tab-button');
+        const leaderboardTabContents = document.querySelectorAll('.leaderboard-tab-content');
+        
+        // Fisher-Yates shuffle algorithm
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+        
+        // Initialize quiz
+        function initQuiz(shuffle = false) {
+            // If shuffle is true, randomize the questions
+            if (shuffle) {
+                Object.keys(quizData).forEach(tab => {
+                    quizData[tab] = shuffleArray([...quizData[tab]]);
+                });
+            }
+            
+            // Clear existing questions
+            Object.keys(quizData).forEach(tab => {
+                const tabContent = document.getElementById(tab);
+                // Keep the heading
+                const heading = tabContent.querySelector('div');
+                tabContent.innerHTML = '';
+                tabContent.appendChild(heading);
+            });
+            
+            // Generate questions for each tab
+            Object.keys(quizData).forEach(tab => {
+                const tabContent = document.getElementById(tab);
+                quizData[tab].forEach((q, index) => {
+                    const questionElement = createQuestionElement(q, index, tab);
+                    tabContent.appendChild(questionElement);
+                });
+            });
+            
+            // Set up event listeners
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const tab = button.getAttribute('data-tab');
+                    switchTab(tab);
+                });
+            });
+            
+            restartButton.addEventListener('click', () => {
+                // Show shuffle animation
+                const shuffleIcon = restartButton.querySelector('svg');
+                shuffleIcon.classList.add('shuffle-icon');
+                
+                setTimeout(() => {
+                    shuffleIcon.classList.remove('shuffle-icon');
+                    restartQuiz(true); // Restart with shuffled questions
+                }, 1000);
+            });
+            
+            reviewButton.addEventListener('click', reviewAnswers);
+            saveScoreButton.addEventListener('click', openNameModal);
+            confirmSaveButton.addEventListener('click', saveScore);
+            cancelSaveButton.addEventListener('click', closeNameModal);
+            
+            // Set up leaderboard tab buttons
+            leaderboardTabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const tab = button.getAttribute('data-leaderboard-tab');
+                    switchLeaderboardTab(tab);
+                });
+            });
+            
+            // Initialize leaderboard
+            updateLeaderboard();
+            
+            // Show first question
+            updateQuestion();
+        }
+        
+        // Create question element
+        function createQuestionElement(questionData, index, tab) {
+            const questionElement = document.createElement('div');
+            questionElement.classList.add('question', 'mb-8', 'p-6', 'bg-white', 'rounded-lg', 'shadow-md', 'fade-in');
+            questionElement.setAttribute('data-question', index);
+            questionElement.setAttribute('data-tab', tab);
+            
+            if (index > 0) {
+                questionElement.classList.add('hidden');
+            }
+            
+            const questionNumber = index + 1;
+            
+            questionElement.innerHTML = `
+                <div class="flex items-center mb-4">
+                    <span class="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold mr-3">${questionNumber}</span>
+                    <h3 class="text-lg font-medium text-gray-800">${questionData.question}</h3>
+                </div>
+                <div class="options space-y-3 mb-6">
+                    ${questionData.options.map((option, i) => `
+                        <button class="option-btn w-full text-left p-3 rounded-lg flex items-center" data-index="${i}">
+                            <span class="option-letter bg-gray-200 rounded-full w-7 h-7 flex items-center justify-center font-medium mr-3">${String.fromCharCode(65 + i)}</span>
+                            <span>${option}</span>
+                        </button>
+                    `).join('')}
+                </div>
+                <div class="explanation p-4 rounded-lg mt-4 hidden">
+                    <p class="font-medium text-blue-800 mb-1">Penjelasan:</p>
+                    <p>${questionData.explanation}</p>
+                </div>
+                <div class="flex justify-between mt-6">
+                    ${index > 0 ? `<button class="prev-btn bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded transition">Sebelumnya</button>` : `<div></div>`}
+                    <button class="next-btn bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded transition hidden">Selanjutnya</button>
+                </div>
+            `;
+            
+            // Add event listeners to options
+            setTimeout(() => {
+                const options = questionElement.querySelectorAll('.option-btn');
+                options.forEach(option => {
+                    option.addEventListener('click', () => {
+                        if (answered) return;
+                        
+                        const selectedIndex = parseInt(option.getAttribute('data-index'));
+                        selectOption(tab, index, selectedIndex, options, questionElement);
+                    });
+                });
+                
+                // Add event listeners to navigation buttons
+                const prevBtn = questionElement.querySelector('.prev-btn');
+                if (prevBtn) {
+                    prevBtn.addEventListener('click', () => {
+                        navigateQuestion(tab, index - 1);
+                    });
+                }
+                
+                const nextBtn = questionElement.querySelector('.next-btn');
+                if (nextBtn) {
+                    nextBtn.addEventListener('click', () => {
+                        if (index < quizData[tab].length - 1) {
+                            navigateQuestion(tab, index + 1);
+                        } else {
+                            showResults(tab);
+                        }
+                    });
+                }
+            }, 0);
+            
+            return questionElement;
+        }
+        
+        // Select option
+        function selectOption(tab, questionIndex, selectedIndex, options, questionElement) {
+            const correctIndex = quizData[tab][questionIndex].answer;
+            
+            // Update user answers
+            userAnswers[tab][questionIndex] = selectedIndex;
+            
+            // Mark selected option
+            options.forEach(opt => opt.classList.remove('selected'));
+            options[selectedIndex].classList.add('selected');
+            
+            // Show correct/incorrect
+            setTimeout(() => {
+                options[correctIndex].classList.add('correct');
+                
+                if (selectedIndex !== correctIndex) {
+                    options[selectedIndex].classList.add('incorrect');
+                } else {
+                    score++;
+                }
+                
+                // Show explanation
+                const explanation = questionElement.querySelector('.explanation');
+                explanation.classList.remove('hidden');
+                
+                // Show next button
+                const nextBtn = questionElement.querySelector('.next-btn');
+                nextBtn.classList.remove('hidden');
+                
+                answered = true;
+                
+                // Update progress
+                updateProgress();
+            }, 500);
+        }
+        
+        // Navigate to question
+        function navigateQuestion(tab, index) {
+            // Hide all questions
+            const questions = document.querySelectorAll(`#${tab} .question`);
+            questions.forEach(q => q.classList.add('hidden'));
+            
+            // Show target question
+            questions[index].classList.remove('hidden');
+            
+            currentQuestion = index;
+            answered = userAnswers[tab][index] !== null;
+            
+            // If already answered, show the results
+            if (answered) {
+                const questionElement = questions[index];
+                const options = questionElement.querySelectorAll('.option-btn');
+                const correctIndex = quizData[tab][index].answer;
+                const selectedIndex = userAnswers[tab][index];
+                
+                options[correctIndex].classList.add('correct');
+                if (selectedIndex !== correctIndex) {
+                    options[selectedIndex].classList.add('incorrect');
+                }
+                
+                // Show explanation
+                const explanation = questionElement.querySelector('.explanation');
+                explanation.classList.remove('hidden');
+                
+                // Show next button
+                const nextBtn = questionElement.querySelector('.next-btn');
+                nextBtn.classList.remove('hidden');
+            }
+            
+            updateProgress();
+        }
+        
+        // Switch tab
+        function switchTab(tab) {
+            // Update active tab button
+            tabButtons.forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.getAttribute('data-tab') === tab) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // Hide all tab contents
+            tabContents.forEach(content => {
+                content.classList.add('hidden');
+            });
+            
+            // Show selected tab content
+            document.getElementById(tab).classList.remove('hidden');
+            
+            // Update current tab
+            currentTab = tab;
+            
+            // Show/hide progress bar based on tab
+            if (tab === 'leaderboard') {
+                progressContainer.classList.add('hidden');
+            } else {
+                progressContainer.classList.remove('hidden');
+                currentQuestion = 0;
+                answered = userAnswers[tab][0] !== null;
+                
+                // Hide results section
+                resultsSection.classList.add('hidden');
+                
+                // Navigate to first question or current question
+                let firstUnanswered = userAnswers[tab].findIndex(answer => answer === null);
+                if (firstUnanswered === -1) firstUnanswered = 0;
+                navigateQuestion(tab, firstUnanswered);
+            }
+            
+            updateProgress();
+        }
+        
+        // Switch leaderboard tab
+        function switchLeaderboardTab(tab) {
+            // Update active tab button
+            leaderboardTabButtons.forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.getAttribute('data-leaderboard-tab') === tab) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // Hide all tab contents
+            leaderboardTabContents.forEach(content => {
+                content.classList.add('hidden');
+            });
+            
+            // Show selected tab content
+            document.getElementById(tab).classList.remove('hidden');
+        }
+        
+        // Update progress
+        function updateProgress() {
+            if (currentTab === 'leaderboard') return;
+            
+            const answeredCount = userAnswers[currentTab].filter(answer => answer !== null).length;
+            const totalQuestions = quizData[currentTab].length;
+            const percentage = (answeredCount / totalQuestions) * 100;
+            
+            progressFill.style.width = `${percentage}%`;
+            progressText.textContent = `${answeredCount}/${totalQuestions}`;
+        }
+        
+        // Show results
+        function showResults(tab) {
+            // Hide all questions
+            const questions = document.querySelectorAll(`#${tab} .question`);
+            questions.forEach(q => q.classList.add('hidden'));
+            
+            // Calculate score
+            const answeredCount = userAnswers[tab].filter(answer => answer !== null).length;
+            let correctCount = 0;
+            
+            userAnswers[tab].forEach((answer, index) => {
+                if (answer === quizData[tab][index].answer) {
+                    correctCount++;
+                }
+            });
+            
+            // Update results
+            finalScoreElement.textContent = `${correctCount}/${quizData[tab].length}`;
+            
+            // Set score message
+            if (correctCount === quizData[tab].length) {
+                scoreMessageElement.textContent = "Sempurna! Kamu hebat!";
+                scoreMessageElement.className = "inline-block bg-green-100 rounded-full px-4 py-2 text-green-800 font-medium";
+                createConfetti();
+            } else if (correctCount >= quizData[tab].length * 0.7) {
+                scoreMessageElement.textContent = "Bagus sekali! Hampir sempurna!";
+                scoreMessageElement.className = "inline-block bg-blue-100 rounded-full px-4 py-2 text-blue-800 font-medium";
+            } else if (correctCount >= quizData[tab].length * 0.5) {
+                scoreMessageElement.textContent = "Cukup baik! Terus belajar!";
+                scoreMessageElement.className = "inline-block bg-yellow-100 rounded-full px-4 py-2 text-yellow-800 font-medium";
+            } else {
+                scoreMessageElement.textContent = "Jangan menyerah! Coba lagi!";
+                scoreMessageElement.className = "inline-block bg-red-100 rounded-full px-4 py-2 text-red-800 font-medium";
+            }
+            
+            // Store current score and tab for saving to leaderboard
+            score = correctCount;
+            
+            // Show results section
+            resultsSection.classList.remove('hidden');
+        }
+        
+        // Open name input modal
+        function openNameModal() {
+            nameModal.classList.remove('hidden');
+            nameModal.classList.add('show');
+            setTimeout(() => {
+                nameModal.classList.add('opacity-100');
+                playerNameInput.focus();
+            }, 10);
+        }
+        
+        // Close name input modal
+        function closeNameModal() {
+            nameModal.classList.remove('opacity-100');
+            nameModal.classList.remove('show');
+            setTimeout(() => {
+                nameModal.classList.add('hidden');
+                nameError.classList.add('hidden');
+            }, 300);
+        }
+        
+        // Save score to leaderboard
+        function saveScore() {
+            const playerName = playerNameInput.value.trim();
+            const playerSchool = playerSchoolInput.value.trim();
+            
+            if (!playerName) {
+                nameError.classList.remove('hidden');
+                return;
+            }
+            
+            // Create new leaderboard entry
+            const newEntry = {
+                name: playerName,
+                school: playerSchool || "Tidak disebutkan",
+                score: score,
+                date: new Date().toISOString().split('T')[0]
+            };
+            
+            // Add to leaderboard
+            leaderboardData[currentTab].push(newEntry);
+            
+            // Sort leaderboard by score (descending) and date (ascending)
+            leaderboardData[currentTab].sort((a, b) => {
+                if (b.score !== a.score) {
+                    return b.score - a.score;
+                }
+                return new Date(a.date) - new Date(b.date);
+            });
+            
+            // Keep only top 100 scores
+            if (leaderboardData[currentTab].length > 100) {
+                leaderboardData[currentTab] = leaderboardData[currentTab].slice(0, 100);
+            }
+            
+            // Save to localStorage
+            try {
+                localStorage.setItem('chemistryQuizLeaderboard', JSON.stringify(leaderboardData));
+            } catch (e) {
+                console.error("Error saving leaderboard data:", e);
+            }
+            
+            // Update leaderboard display
+            updateLeaderboard();
+            
+            // Close modal
+            closeNameModal();
+            
+            // Show leaderboard tab
+            switchTab('leaderboard');
+            
+            // Switch to the correct leaderboard tab
+            switchLeaderboardTab(`${currentTab}-leaderboard`);
+            
+            // Show success message
+            showToast("Skor kamu berhasil disimpan!");
+        }
+        
+        // Update leaderboard display
+        function updateLeaderboard() {
+            Object.keys(leaderboardData).forEach(tab => {
+                const leaderboardList = document.querySelector(`#${tab}-leaderboard .leaderboard-list`);
+                leaderboardList.innerHTML = '';
+                
+                if (leaderboardData[tab].length === 0) {
+                    leaderboardList.innerHTML = `
+                        <div class="text-center py-8 text-gray-500">
+                            <div class="mb-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                </svg>
+                            </div>
+                            <p class="text-lg font-medium">Belum ada data peringkat</p>
+                            <p class="mt-2">Jadilah yang pertama menyelesaikan kuis ini!</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                leaderboardData[tab].forEach((entry, index) => {
+                    const leaderboardItem = document.createElement('div');
+                    leaderboardItem.classList.add('leaderboard-item', 'flex', 'items-center', 'p-4', 'border-b', 'border-gray-200', 'hover:bg-gray-50', 'transition');
+                    
+                    let medalClass = '';
+                    let medalEmoji = '';
+                    
+                    if (index === 0) {
+                        medalClass = 'medal-gold';
+                        medalEmoji = '🥇';
+                    } else if (index === 1) {
+                        medalClass = 'medal-silver';
+                        medalEmoji = '🥈';
+                    } else if (index === 2) {
+                        medalClass = 'medal-bronze';
+                        medalEmoji = '🥉';
+                    }
+                    
+                    leaderboardItem.innerHTML = `
+                        <div class="flex-shrink-0 w-8 text-center font-bold ${index < 3 ? 'text-transparent' : 'text-gray-600'}">
+                            ${index < 3 ? '' : (index + 1)}
+                        </div>
+                        ${index < 3 ? `<div class="flex-shrink-0 w-8 h-8 rounded-full ${medalClass} flex items-center justify-center text-lg" title="Peringkat ${index + 1}">${medalEmoji}</div>` : '<div class="w-8"></div>'}
+                        <div class="ml-4 flex-grow">
+                            <div class="font-medium text-gray-800">${entry.name}</div>
+                            <div class="text-sm text-gray-500">${entry.school}</div>
+                        </div>
+                        <div class="flex-shrink-0 text-right">
+                            <div class="font-bold text-blue-600">${entry.score}/10</div>
+                            <div class="text-xs text-gray-500">${formatDate(entry.date)}</div>
+                        </div>
+                    `;
+                    
+                    leaderboardList.appendChild(leaderboardItem);
+                });
+            });
+        }
+        
+        // Format date to Indonesian format
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const options = { year: 'numeric', month: 'short', day: 'numeric' };
+            return date.toLocaleDateString('id-ID', options);
+        }
+        
+        // Show toast message
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.classList.add('fixed', 'bottom-4', 'left-1/2', 'transform', '-translate-x-1/2', 'bg-green-500', 'text-white', 'px-6', 'py-3', 'rounded-lg', 'shadow-lg', 'z-50', 'opacity-0', 'transition-opacity');
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.add('opacity-100');
+            }, 10);
+            
+            setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                setTimeout(() => {
+                    document.body.removeChild(toast);
+                }, 300);
+            }, 3000);
+        }
+        
+        // Restart quiz
+        function restartQuiz(shuffle = false) {
+            // Reset variables
+            score = 0;
+            userAnswers = {
+                kelas7: Array(10).fill(null),
+                kelas8: Array(10).fill(null),
+                kelas9: Array(10).fill(null)
+            };
+            
+            // If shuffle is true, reset quiz data to original and then shuffle
+            if (shuffle) {
+                // Reset quiz data to original
+                quizData = JSON.parse(JSON.stringify(originalQuizData));
+                
+                // Initialize quiz with shuffled questions
+                initQuiz(true);
+            } else {
+                // Reset UI
+                const options = document.querySelectorAll('.option-btn');
+                options.forEach(option => {
+                    option.classList.remove('selected', 'correct', 'incorrect');
+                });
+                
+                const explanations = document.querySelectorAll('.explanation');
+                explanations.forEach(explanation => {
+                    explanation.classList.add('hidden');
+                });
+                
+                const nextButtons = document.querySelectorAll('.next-btn');
+                nextButtons.forEach(button => {
+                    button.classList.add('hidden');
+                });
+            }
+            
+            // Hide results section
+            resultsSection.classList.add('hidden');
+            
+            // Switch to first tab
+            switchTab('kelas7');
+        }
+        
+        // Review answers
+        function reviewAnswers() {
+            // Hide results section
+            resultsSection.classList.add('hidden');
+            
+            // Show first question
+            navigateQuestion(currentTab, 0);
+        }
+        
+        // Create confetti effect
+        function createConfetti() {
+            const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
+            
+            for (let i = 0; i < 100; i++) {
+                const confetti = document.createElement('div');
+                confetti.classList.add('confetti');
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.width = Math.random() * 10 + 5 + 'px';
+                confetti.style.height = Math.random() * 10 + 5 + 'px';
+                confetti.style.animationDuration = (Math.random() * 3 + 2) + 's';
+                confetti.style.animationDelay = Math.random() * 5 + 's';
+                document.body.appendChild(confetti);
+                
+                setTimeout(() => {
+                    confetti.remove();
+                }, 8000);
+            }
+        }
+        
+        // Update question display
+        function updateQuestion() {
+            // Hide all questions
+            const questions = document.querySelectorAll('.question');
+            questions.forEach(q => q.classList.add('hidden'));
+            
+            // Show current question
+            const currentQuestions = document.querySelectorAll(`#${currentTab} .question`);
+            if (currentQuestions.length > 0) {
+                currentQuestions[currentQuestion].classList.remove('hidden');
+            }
+            
+            updateProgress();
+        }
+        
+        // Initialize quiz when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => initQuiz(false));
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'96489498a30a448f',t:'MTc1MzQxNDI0NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
